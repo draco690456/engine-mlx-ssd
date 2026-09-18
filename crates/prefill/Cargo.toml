@@ -1,0 +1,15 @@
+[package]
+name = "engine-mlx-prefill"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Chunked/paged prefill pipeline for MLX-C"
+
+[dependencies]
+engine-mlx-ops = { workspace = true }
+engine-mlx-attention = { workspace = true }
+engine-mlx-kvcache = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+half = { workspace = true }
+sha1 = { workspace = true }

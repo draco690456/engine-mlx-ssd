@@ -1,0 +1,71 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/ops",
+    "crates/mlx-ffi",
+    "crates/attention",
+    "crates/prefill",
+    "crates/kvcache",
+    "crates/serve",
+    "crates/spill",
+]
+exclude = [
+    "crates/ops/crates",
+    "external/nxm-core",  # vendored workspace — exclude to avoid nested workspace conflict
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/draco690456/nxm-private"
+
+[workspace.dependencies]
+# Internal crates
+engine-mlx-ops = { path = "crates/ops" }
+engine-mlx-ffi = { path = "crates/mlx-ffi" }
+engine-mlx-attention = { path = "crates/attention" }
+engine-mlx-prefill = { path = "crates/prefill" }
+engine-mlx-kvcache = { path = "crates/kvcache" }
+engine-mlx-spill = { path = "crates/spill" }
+
+# External shared (vendored under external/)
+nxm-shared = { path = "external/nxm-shared" }
+# nxm-core is a workspace with multiple crates — reference specific sub-crates:
+nxm-ops-core = { path = "external/nxm-core/crates/nxm-ops-core" }
+nxm-attention-core = { path = "external/nxm-core/crates/nxm-attention-core" }
+nxm-model-core = { path = "external/nxm-core/crates/nxm-model-core" }
+nxm-modelplan = { path = "external/nxm-core/crates/model-plan" }
+nxm-cache-core = { path = "external/nxm-core/crates/nxm-cache-core" }
+nxm-tokenizer = { path = "external/nxm-core/crates/nxm-tokenizer" }
+nxm_sampler = { path = "external/nxm-sampler" }
+
+# MLX-C FFI (requires mlx-c headers at build time)
+mlx-sys = { version = "0.2" }
+
+# Common
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt"] }
+thiserror = "2"
+half = "2.7"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+once_cell = "1"
+safetensors = "0.8"
+memmap2 = "0.9"
+tokio = { version = "1", features = ["full"] }
+axum = "0.7"
+tower-http = { version = "0.5", features = ["cors"] }
+futures = "0.3"
+uuid = { version = "1", features = ["v4", "serde"] }
+tokenizers = "0.23"
+sha1 = "0.10"
+
+[profile.dev]
+opt-level = 1
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1

@@ -1,0 +1,13 @@
+[package]
+name = "engine-mlx-kvcache"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "KV cache backends for MLX-C — concat, rotating, fp8, turboquant"
+
+[dependencies]
+engine-mlx-ops = { workspace = true }
+nxm-cache-core = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+half = { workspace = true }

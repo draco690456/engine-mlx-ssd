@@ -1,0 +1,15 @@
+[package]
+name = "engine-mlx-ops"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "MLX-C FFI operations — atomic ops via engine-mlx-ffi (RoPE, SDPA, SwiGLU, MoE, GDN, quantized matmul)"
+
+[dependencies]
+anyhow = { workspace = true }
+tracing = { workspace = true }
+half = { workspace = true }
+thiserror = { workspace = true }
+nxm-ops-core = { workspace = true }
+nxm-cache-core = { workspace = true }
+engine-mlx-ffi = { workspace = true }

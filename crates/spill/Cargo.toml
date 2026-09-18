@@ -1,0 +1,22 @@
+[package]
+name = "engine-mlx-spill"
+description = "SSD expert streaming for engine-mlx — mmap + madvise MoE weight streaming"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+# Placeholder: the MLX-gated forward/loader modules are not yet migrated
+# (they depend on nxm-mlx-ops, unmigrated). Reserved for future integration.
+mlx = []
+
+[dependencies]
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+half.workspace = true
+memmap2.workspace = true
+safetensors.workspace = true
+sha1.workspace = true

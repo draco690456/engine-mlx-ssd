@@ -1,0 +1,14 @@
+[package]
+name = "engine-mlx-attention"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Complete attention layers for MLX-C — GQA, sliding window, gated, GDN"
+
+[dependencies]
+engine-mlx-ops = { workspace = true }
+engine-mlx-kvcache = { workspace = true }
+nxm-attention-core = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+half = { workspace = true }
