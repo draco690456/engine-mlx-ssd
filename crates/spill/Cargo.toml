@@ -6,9 +6,10 @@ edition.workspace = true
 license.workspace = true
 
 [features]
-# Placeholder: the MLX-gated forward/loader modules are not yet migrated
-# (they depend on nxm-mlx-ops, unmigrated). Reserved for future integration.
-mlx = []
+# The MLX-gated forward/loader path wires spill's generic dispatch types
+# (LayerDescriptor/QWeight -> mmap'd mlx_arrays) to the real `engine_mlx_ffi`.
+# Enable with `--features mlx` (workspace) alongside the other crates.
+mlx = ["dep:engine-mlx-ffi"]
 
 [dependencies]
 anyhow.workspace = true
@@ -20,3 +21,4 @@ half.workspace = true
 memmap2.workspace = true
 safetensors.workspace = true
 sha1.workspace = true
+engine-mlx-ffi = { workspace = true, optional = true }

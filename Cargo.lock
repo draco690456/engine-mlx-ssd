@@ -663,6 +663,7 @@ name = "engine-mlx-spill"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "engine-mlx-ffi",
  "half",
  "memmap2",
  "safetensors",

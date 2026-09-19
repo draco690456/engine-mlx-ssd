@@ -59,15 +59,15 @@ impl ExpertOffset {
 /// The underlying mmap must outlive these arrays.
 #[cfg(feature = "mlx")]
 pub struct ExpertArrays {
-    pub gate_w: nxm_mlx_ops::ffi::mlx_array,
-    pub gate_s: nxm_mlx_ops::ffi::mlx_array,
-    pub gate_b: nxm_mlx_ops::ffi::mlx_array,
-    pub up_w: nxm_mlx_ops::ffi::mlx_array,
-    pub up_s: nxm_mlx_ops::ffi::mlx_array,
-    pub up_b: nxm_mlx_ops::ffi::mlx_array,
-    pub down_w: nxm_mlx_ops::ffi::mlx_array,
-    pub down_s: nxm_mlx_ops::ffi::mlx_array,
-    pub down_b: nxm_mlx_ops::ffi::mlx_array,
+    pub gate_w: engine_mlx_ffi::mlx_array,
+    pub gate_s: engine_mlx_ffi::mlx_array,
+    pub gate_b: engine_mlx_ffi::mlx_array,
+    pub up_w: engine_mlx_ffi::mlx_array,
+    pub up_s: engine_mlx_ffi::mlx_array,
+    pub up_b: engine_mlx_ffi::mlx_array,
+    pub down_w: engine_mlx_ffi::mlx_array,
+    pub down_s: engine_mlx_ffi::mlx_array,
+    pub down_b: engine_mlx_ffi::mlx_array,
 }
 
 /// Build ExpertOffset for a single expert from the stacked tensor layout.
@@ -145,8 +145,8 @@ pub(crate) unsafe fn mlx_array_from_mmap(
     mmap: &memmap2::Mmap,
     range: &TensorRange,
     shape: &[i32],
-) -> Result<nxm_mlx_ops::ffi::mlx_array> {
-    use nxm_mlx_ops::ffi::{mlx_array_new_data, mlx_dtype};
+) -> Result<engine_mlx_ffi::mlx_array> {
+    use engine_mlx_ffi::{mlx_array_new_data, mlx_dtype};
 
     let ptr = mmap.as_ptr().add(range.offset) as *const std::ffi::c_void;
     let dtype = match range.dtype.as_str() {

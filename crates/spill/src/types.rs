@@ -4,7 +4,7 @@
 //! The loader reads config.json + tensor shapes and builds a Vec<LayerDescriptor>.
 
 #[cfg(feature = "mlx")]
-use nxm_mlx_ops::ffi::mlx_array;
+use engine_mlx_ffi::mlx_array;
 #[cfg(not(feature = "mlx"))]
 #[allow(non_camel_case_types)]
 type mlx_array = *mut std::ffi::c_void;
