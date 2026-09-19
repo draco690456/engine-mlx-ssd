@@ -5,6 +5,9 @@
 use crate::ffi::mlx_array;
 use crate::MlxCtx;
 
+/// Apply a dense linear layer: `y = x @ W^T + b` (no quantization).
+///
+/// **NOTE**: Stub — panics if `mlx` feature is not enabled.
 pub fn linear(
     _ctx: &MlxCtx,
     _x: mlx_array,
@@ -14,6 +17,9 @@ pub fn linear(
     panic!("MLX feature not enabled. Compile with --features mlx or install mlx-c.")
 }
 
+/// Apply a quantized linear layer: `y = x @ Q(W)^T + b` with group-wise quantization.
+///
+/// **NOTE**: Stub — panics if `mlx` feature is not enabled.
 pub fn linear_quantized(
     _ctx: &MlxCtx,
     _x: mlx_array,

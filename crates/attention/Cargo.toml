@@ -5,10 +5,13 @@ edition.workspace = true
 license.workspace = true
 description = "Complete attention layers for MLX-C — GQA, sliding window, gated, GDN"
 
+[features]
+default = []
+mlx = ["engine-mlx-ffi/mlx", "engine-mlx-ops/mlx", "engine-mlx-kvcache/mlx"]
+
 [dependencies]
 engine-mlx-ops = { workspace = true }
 engine-mlx-kvcache = { workspace = true }
-nxm-attention-core = { workspace = true }
+engine-mlx-ffi = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
-half = { workspace = true }

@@ -2,45 +2,48 @@
 
 use engine_mlx_attention::{GdnConfig, QuantWeights};
 use engine_mlx_ops::ffi::mlx_array;
-use engine_mlx_ops::KvCacheBackend;
+use engine_mlx_ops::kv_traits::{KvCacheBackend, TensorRef};
 
 #[test]
 fn quant_weights_is_constructible() {
     let w = QuantWeights {
-        weight: mlx_array(std::ptr::null_mut()),
-        scales: mlx_array(std::ptr::null_mut()),
-        biases: mlx_array(std::ptr::null_mut()),
+        weight: unsafe { std::mem::zeroed() },
+        scales: unsafe { std::mem::zeroed() },
+        biases: unsafe { std::mem::zeroed() },
         group_size: 128,
         bits: 2,
-        mode: "gemm".to_string(),
+        mode: "affine",
     };
     assert_eq!(w.group_size, 128);
     assert_eq!(w.bits, 2);
-    assert_eq!(w.mode, "gemm");
+    assert_eq!(w.mode, "affine");
 }
 
 #[test]
-fn gdn_config_default_new_is_consistent() {
-    let cfg = GdnConfig::new(2048, 32, 64);
-    assert_eq!(cfg.hidden_dim, 2048);
-    assert_eq!(cfg.num_heads, 32);
-    assert_eq!(cfg.head_dim, 64);
+fn gdn_config_fields_accessible() {
+    let cfg = GdnConfig {
+        num_key_heads: 4,
+        num_value_heads: 8,
+        key_head_dim: 64,
+        value_head_dim: 64,
+        conv_kernel_size: 4,
+        rms_norm_eps: 1e-6,
+        use_metal_kernel: false,
+    };
+    assert_eq!(cfg.num_key_heads, 4);
+    assert_eq!(cfg.num_value_heads, 8);
+    assert_eq!(cfg.key_head_dim, 64);
 }
 
 #[test]
-fn kv_cache_backend_re_exported_from_ops() {
-    // The `KvCacheBackend` trait surface must be reachable through the
-    // attention crate's re-export and satisfiable by a concrete type.
+fn kv_cache_backend_trait_object_works() {
     struct Dummy;
-    impl engine_mlx_ops::KvCacheBackend for Dummy {
-        fn append(&mut self, _k: mlx_array, _v: mlx_array) -> anyhow::Result<()> {
+    impl KvCacheBackend for Dummy {
+        fn append(&mut self, _k: TensorRef, _v: TensorRef) -> anyhow::Result<()> {
             Ok(())
         }
-        fn get(&self, _s: usize, _l: usize) -> anyhow::Result<(mlx_array, mlx_array)> {
-            Ok((mlx_array(std::ptr::null_mut()), mlx_array(std::ptr::null_mut())))
-        }
-        fn capacity(&self) -> usize {
-            0
+        fn decode_to_f32(&self) -> anyhow::Result<(Vec<f32>, Vec<f32>)> {
+            Ok((vec![], vec![]))
         }
         fn len(&self) -> usize {
             0
@@ -48,8 +51,8 @@ fn kv_cache_backend_re_exported_from_ops() {
     }
 
     let mut d = Dummy;
-    d.append(mlx_array(std::ptr::null_mut()), mlx_array(std::ptr::null_mut()))
+    d.append(TensorRef::F32(vec![1.0]), TensorRef::F32(vec![1.0]))
         .unwrap();
     assert_eq!(d.len(), 0);
-    assert_eq!(d.capacity(), 0);
+    assert!(d.is_empty());
 }

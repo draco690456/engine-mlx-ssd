@@ -1,9 +1,10 @@
+#![cfg(not(feature = "mlx"))] // stub-mode tests; skip under --features mlx
 //! Unit tests for `engine_mlx_ffi::context` (safe stream/array wrappers).
 
 use engine_mlx_ffi::{MlxContext, mlx_stream};
 
 fn null_stream() -> mlx_stream {
-    mlx_stream(std::ptr::null_mut())
+    unsafe { std::mem::zeroed() }
 }
 
 #[test]
@@ -22,12 +23,14 @@ fn check_propagates_nonzero_codes() {
 }
 
 #[test]
+#[cfg(not(feature = "mlx"))]
 #[should_panic(expected = "MLX feature not enabled")]
 fn cpu_panics_without_mlx() {
     let _ = MlxContext::cpu();
 }
 
 #[test]
+#[cfg(not(feature = "mlx"))]
 #[should_panic(expected = "MLX feature not enabled")]
 fn gpu_panics_without_mlx() {
     let _ = MlxContext::gpu();

@@ -1,3 +1,4 @@
+#![cfg(not(feature = "mlx"))] // stub-mode tests; skip under --features mlx
 //! Unit tests for `engine_mlx_ops::linear` module.
 //!
 //! Linear ops are stubbed and panic without the `mlx` feature / mlx-c headers.
@@ -6,11 +7,11 @@ use engine_mlx_ops::MlxCtx;
 use engine_mlx_ops::ffi::mlx_array;
 
 fn dummy_array() -> mlx_array {
-    mlx_array(std::ptr::null_mut())
+    unsafe { std::mem::zeroed() }
 }
 
 fn null_ctx() -> MlxCtx {
-    MlxCtx::new(engine_mlx_ops::ffi::mlx_stream(std::ptr::null_mut()))
+    MlxCtx::new(unsafe { std::mem::zeroed() })
 }
 
 #[test]

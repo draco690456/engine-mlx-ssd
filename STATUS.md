@@ -1,40 +1,42 @@
 # STATUS — engine-mlx-ssd
 
-## Stato: 🚧 Migrazione in corso (Fase 5)
+## State: RECOVERED → independent + functional
+`engine-mlx-ssd` is an independent (self-contained) fork of `engine-mlx`, focused on
+Metal/Apple-Silicon inference with **SSD expert streaming (MoE)** via the `spill` crate.
 
-**Ultimo aggiornamento**: 2026-08-23
+- Independence: **0 git deps** (`Cargo.lock`: no `git+` sources); MLX-C via `mlx-sys`
+  (crates.io) + inlined `crates/modelplan` + `crates/tokenizer`. Everything lives in-repo
+  (the old `external/` vendored snapshot is superseded by the inlined crates).
+- Build: `cargo check --workspace --all-targets` ✅ (macOS arm64, Xcode/clang 5.0).
 
-## Cosa c'è
+## History of this repo
+1. `6b6b545` — *original stub*: vendored `external/` deps, stub `ops`/`ffi`/`linear`
+   (the old `ops/lib.rs` was literally "Stub implementation — Full implementation
+   requires MLX-C headers").
+2. `feat(mlxs): recover real MLX ops/serve impl from engine-mlx; preserve SSD spill` —
+   replaces the stub crates with the real `engine-mlx` implementation + keeps the `spill`
+   crate (ssD's real contribution) + adds the `--spill` CLI subcommand. Non-destructive
+   (this commit is a child of `6b6b545`).
 
-- [x] Workspace Cargo duplicato da engine-mlx (7 crates: ops, mlx-ffi, attention, prefill, kvcache, serve, spill)
-- [x] Crate `spill` — core backend-agnostic di SSD expert streaming (mmap + madvise) migrato da serve-spill
-- [x] Subcomando CLI `--spill <model>` nel crate serve (index + prefetch/release esperti)
-- [x] CONTEXT.md aggiornato con architettura spill
+## What works (recovered from live engine-mlx)
+- 8 crates: `ops`, `mlx-ffi`, `attention`, `prefill`, `kvcache`, `serve`, `modelplan`,
+  `tokenizer` + ssD's `spill`.
+- `mlx-ffi`: real bindgen bindings over `mlx-c`/`mlx`; `MlxCtx` with real ops
+  (`mlx_quantized_matmul`, `mlx_fast_rope`, `mlx_fast_sdpa`, `mlx_dequantize`,
+  `mlx_rms_norm`, …) + cfg-gated stubs.
+- `ops`: real MLX compute — `quant` (`QuantWeights` w/ `qmatmul` → Q4/mxfp4/**Q8** via
+  `with_quant(bits=8)`), `embed`, `fp8`, `gdn`, `mlp`, `rope`, `lm_head`, `moe`, …
+  (8-bit compute is native via the MLX framework — no custom Metal kernel needed).
+- `serve`: `Qwen3Engine::load` → `embed` → `prefill` → `decode_step`; token-exact vs
+  `mlx_lm` at temperature 0; OpenAI-compatible HTTP + SSE; stable under sustained load.
+- `spill` (ssD, preserved): SSD MoE expert streaming — mmap + madvise prefetch/release,
+  no external deps. `nxm-engine-mlx --spill <model>` indexes & streams experts from SSD.
 
-## Cosa manca
-
-- [ ] Verificare cargo check dell'intero workspace
-- [ ] Commit + push su GitHub
-- [ ] CI GitHub Actions
-- [ ] Integrare i moduli MLX-gated dello spill engine (forward, loader, mamba2, model*) — bloccati da dipendenza `nxm-mlx-ops` non migrata
-
-## Spill engine — migrazione parziale (core portable)
-
-| Modulo | Stato | Note |
-|--------|-------|------|
-| `mmap_experts` | ✅ | mmap safetensors, expert index, madvise streaming |
-| `expert_index` | ✅ | byte-range per expert per layer |
-| `expert_tracker` | ✅ | tracking recent usage per layer |
-| `speculative_prefetch` | ✅ | prefetch lookahead |
-| `engine_core` | ✅ | traits Engine/Model, Tensor |
-| `engine_trait` | ✅ | SpillEngineTrait |
-| `interface` | ✅ | ExpertStore trait |
-| `types` | ✅ | tipi condivisi |
-| `config` | ✅ | SpillConfig |
-| `forward`, `loader*`, `mamba2`, `model*` | ⏸️ | NON migrati — MLX-gated, dipendono da `nxm-mlx-ops` (unmigrato) |
-
-## Prossimi step
-
-1. `cargo check` — risolvere errori
-2. Commit + push su GitHub
-3. Quando `nxm-mlx-ops`/nxm-operations saranno migrati, portare anche i moduli MLX-gated del spill engine
+## Notes / decisions
+- ssD's old stub-only files (`ops/compile.rs`, `ops/quant_cache.rs`,
+  `kvcache/turboquant.rs`, `prefill/{kv_spill,memory_stage,pflash}.rs`) were **stubs**
+  ("Stub for workspace structure") — dropped in favour of live's real implementations.
+  No real logic was lost.
+- Metal-side improvements (q8 shader, load_vector, race-fix) from `engine-metal-ssd`/
+  `engine-metal` do **not** transfer: this is an MLX-C engine (compute via MLX framework,
+  not raw Metal). See `CONTEXT.md#cross-engine-notes`.

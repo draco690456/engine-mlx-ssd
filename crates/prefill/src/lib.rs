@@ -1,27 +1,23 @@
 //! # engine-mlx-prefill
 //!
-//! Chunked/paged prefill pipeline for MLX-C.
+//! Prefill pipeline with two stages:
+//! 1. Prefix cache — skip tokens already processed (radix tree + SHA1)
+//! 2. Chunked batch prefill — process in chunks (not 1 token at a time)
 //!
-//! **NOTE**: This is a minimal stub for workspace structure.
-//! Full MLX-C integration requires complete MLX-C FFI implementation.
+//! Each stage activates only when needed. Short prompts go straight to chunk.
+//! Repeated prompts hit the prefix cache.
+//!
+//! ## Standalone
+//!
+//! The model forward function is passed as a closure, making the pipeline
+//! backend-agnostic — it does not depend on any specific MLX bindings.
 
-pub mod chunked_prefill;
 pub mod config;
 pub mod interface;
-pub mod kv_spill;
-pub mod memory_stage;
-pub mod pflash;
-pub mod pipeline;
 pub mod prefix_cache;
+pub mod chunked_prefill;
+pub mod pipeline;
 
-use engine_mlx_ops::MlxCtx;
-use anyhow::Result;
-
-/// Placeholder for prefill pipeline.
-pub struct PrefillPipeline;
-
-impl PrefillPipeline {
-    pub fn new(_ctx: &MlxCtx) -> Result<Self> {
-        anyhow::bail!("PrefillPipeline not implemented - needs mlx-c FFI")
-    }
-}
+pub use config::PrefillConfig;
+pub use interface::PrefillPipelineTrait;
+pub use pipeline::{PrefillPipeline, PrefillResult};

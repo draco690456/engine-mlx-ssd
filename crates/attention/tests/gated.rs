@@ -1,46 +1,64 @@
+#![cfg(not(feature = "mlx"))] // stub-mode tests: assert the "needs mlx-c FFI" marker; skip under --features mlx
 //! Unit tests for `engine_mlx_attention::gated` module (gated attention).
 
-use engine_mlx_attention::gated;
-use engine_mlx_ops::MlxCtx;
+use engine_mlx_attention::gated::{GatedAttnWeights, gated_attention};
+use engine_mlx_attention::gqa::GqaConfig;
+use engine_mlx_kvcache::KvCache;
 use engine_mlx_ops::ffi::mlx_array;
+use engine_mlx_ops::MlxCtx;
 
-fn null_ctx() -> engine_mlx_ops::MlxCtx {
-    engine_mlx_ops::MlxCtx::new(engine_mlx_ops::ffi::mlx_stream(std::ptr::null_mut()))
+fn null_ctx() -> MlxCtx {
+    engine_mlx_ops::MlxCtx::new(unsafe { std::mem::zeroed() })
 }
 
-fn dummy_weights() -> engine_mlx_attention::QuantWeights {
-    engine_mlx_attention::QuantWeights {
-        weight: mlx_array(std::ptr::null_mut()),
-        scales: mlx_array(std::ptr::null_mut()),
-        biases: mlx_array(std::ptr::null_mut()),
+fn dummy_array() -> mlx_array {
+    unsafe { std::mem::zeroed() }
+}
+
+fn dummy_weights() -> engine_mlx_ops::quant::QuantWeights {
+    engine_mlx_ops::quant::QuantWeights {
+        weight: dummy_array(),
+        scales: dummy_array(),
+        biases: dummy_array(),
         group_size: 64,
         bits: 4,
-        mode: "linear".to_string(),
+        mode: "affine",
     }
 }
 
-#[test]
-fn project_q_gated_bails_with_mlx_marker() {
-    let err = gated::project_q_gated(
-        &null_ctx(),
-        mlx_array(std::ptr::null_mut()),
-        &dummy_weights(),
-        &dummy_weights(),
-        32,
-        128,
-        1024,
-    )
-    .unwrap_err();
-    assert!(err.to_string().contains("needs mlx-c FFI"));
+struct DummyCache;
+impl KvCache for DummyCache {
+    fn append(&mut self, _ctx: &MlxCtx, _k: mlx_array, _v: mlx_array) -> anyhow::Result<()> {
+        Ok(())
+    }
+    fn get(&self, _ctx: &MlxCtx) -> anyhow::Result<(mlx_array, mlx_array)> {
+        Ok((dummy_array(), dummy_array()))
+    }
+    fn len(&self) -> usize { 0 }
+    fn reset(&mut self) {}
+    fn memory_bytes(&self) -> usize { 0 }
 }
 
 #[test]
-fn apply_output_gate_bails_with_mlx_marker() {
-    let err = gated::apply_output_gate(
-        &null_ctx(),
-        mlx_array(std::ptr::null_mut()),
-        mlx_array(std::ptr::null_mut()),
-    )
-    .unwrap_err();
+fn gated_attention_bails_with_mlx_marker() {
+    let cfg = GqaConfig {
+        n_heads: 32,
+        n_kv_heads: 8,
+        head_dim: 128,
+        rope_theta: 10000.0,
+        norm_eps: 1e-6,
+        use_rope: true,
+    };
+    let weights = GatedAttnWeights {
+        q_proj: dummy_weights(),
+        k_proj: dummy_weights(),
+        v_proj: dummy_weights(),
+        o_proj: dummy_weights(),
+        q_norm: None,
+        k_norm: None,
+    };
+    let mut cache = DummyCache;
+    let err = gated_attention(&null_ctx(), dummy_array(), &weights, &mut cache, &cfg, 0)
+        .unwrap_err();
     assert!(err.to_string().contains("needs mlx-c FFI"));
 }

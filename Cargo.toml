@@ -7,18 +7,19 @@ members = [
     "crates/prefill",
     "crates/kvcache",
     "crates/serve",
+    "crates/modelplan",
+    "crates/tokenizer",
     "crates/spill",
 ]
 exclude = [
     "crates/ops/crates",
-    "external/nxm-core",  # vendored workspace — exclude to avoid nested workspace conflict
 ]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-repository = "https://github.com/draco690456/nxm-private"
+repository = "https://github.com/draco060456/engine-mlx-ssd"
 
 [workspace.dependencies]
 # Internal crates
@@ -29,16 +30,9 @@ engine-mlx-prefill = { path = "crates/prefill" }
 engine-mlx-kvcache = { path = "crates/kvcache" }
 engine-mlx-spill = { path = "crates/spill" }
 
-# External shared (vendored under external/)
-nxm-shared = { path = "external/nxm-shared" }
-# nxm-core is a workspace with multiple crates — reference specific sub-crates:
-nxm-ops-core = { path = "external/nxm-core/crates/nxm-ops-core" }
-nxm-attention-core = { path = "external/nxm-core/crates/nxm-attention-core" }
-nxm-model-core = { path = "external/nxm-core/crates/nxm-model-core" }
-nxm-modelplan = { path = "external/nxm-core/crates/model-plan" }
-nxm-cache-core = { path = "external/nxm-core/crates/nxm-cache-core" }
-nxm-tokenizer = { path = "external/nxm-core/crates/nxm-tokenizer" }
-nxm_sampler = { path = "external/nxm-sampler" }
+# Vendored crates (model introspection + pure-Rust tokenizer)
+nxm-modelplan = { path = "crates/modelplan" }
+nxm-tokenizer = { path = "crates/tokenizer" }
 
 # MLX-C FFI (requires mlx-c headers at build time)
 mlx-sys = { version = "0.2" }

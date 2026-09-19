@@ -1,47 +1,50 @@
-# engine-mlx-ssd
+# CONTEXT — engine-mlx-ssd
 
-Engine di inferenza MLX-C con **expert streaming da SSD** (MoE) per Apple Silicon.
+## What this is
+An independent (no-external-repo) Rust workspace: an MLX-C inference engine for
+Apple Silicon, with **SSD expert streaming (MoE)** via the dedicated `spill` crate.
 
-Estensione di **engine-mlx**: stessa base MLX-C, più lo spill engine che mappa i pesi
-degli expert direttamente da SSD via `mmap` + `madvise`, tenendo in RAM solo gli
-expert attivi.
+## Workspace
+8 internal crates + 1 spill crate (`crates/`):
+`ops` · `mlx-ffi` · `attention` · `prefill` · `kvcache` · `serve` · `modelplan` ·
+`tokenizer` · `spill`.
 
-## Differenze da engine-mlx
+`Cargo.toml` (workspace): `resolver = "2"`, in-repo path crates only, `mlx-sys = "0.2"`
+(crates.io). **No git dependencies** — fully self-contained ("tutto dentro").
 
-| Crate | engine-mlx | engine-mlx-ssd |
-|-------|-----------|----------------|
-| `ops`, `mlx-ffi`, `attention`, `prefill`, `kvcache`, `serve` | ✅ | ✅ (duplicati — indipendenza totale, Opzione A) |
-| `spill` | — | ✅ **Nuovo** — streaming expert da SSD |
-
-## Crates interni
-
-| Crate | Ruolo |
-|-------|-------|
-| `ops` | Operazioni MLX-C atomiche |
-| `mlx-ffi` | Binding FFI MLX-C (bindgen) |
-| `attention` | Attention layer MLX |
-| `prefill` | Prefill GEMM MLX |
-| `kvcache` | KV cache MLX |
-| `spill` | **SSD expert streaming**: mmap + madvise WILLNEED/DONTNEED, expert index/tracker, speculative prefetch. Backend-agnostic. |
-| `serve` | Server HTTP OpenAI-compatibile + CLI, con subcomando `--spill` |
-
-## Architettura spill
-
-```text
-serve (CLI: server HTTP / --spill <model>)
-  → spill (MmapExperts: mmap safetensors → expert index → madvise streaming)
-    → ops/mlx-ffi (MLX-C forward per esecuzione esperti in RAM)
+## Build / run
+```sh
+cargo check --workspace --all-targets        # verify (macOS arm64)
+cargo build -p engine-mlx-serve              # build the server binary `nxm-engine-mlx`
+cargo build -p engine-mlx-serve --features mlx  # enable real MLX-C ops
+# Serve:
+ENGINE_MLX_MODEL=~/models/... nxm-engine-mlx          # OpenAI-compatible HTTP on :11435
+# SSD spill index (no GPU needed):
+nxm-engine-mlx --spill <path/to/model>
 ```
 
-## Dipendenze esterne
+## Independence model
+- `modelplan` + `tokenizer` are **inlined** top-level crates (pure Rust) — not pulled from
+  any external repo / git dependency. This replaces the older `external/` vendored-snapshot
+  approach (nxm-shared / nxm-core / nxm-sampler) used by the original stub: the inlined
+  crates are themselves part of this repo, so "everything is inside".
 
-- `nxm-shared` — tipi OpenAI, SSE, config server
-- `nxm-core` — ModelManifest, EnginePlan, tokenizer
-- `nxm-sampler` — strategie di sampling
+## Cross-engine notes (what does NOT apply here)
+This is an **MLX-C** engine. Compute runs through `mlx-sys`/`libmlx` (the MLX framework),
+NOT raw Metal. Therefore:
+- The `engine-metal-ssd` / `engine-metal` Metal-shader improvements (the q8 compute/serve
+  path, `load_vector` trick, the Q8 load-shape race-fix, fused kernels) are **Metal-specific**
+  and do not transfer to this MLX engine.
+- 8-bit (Q8) compute here is **native**: `engine_mlx_ffi::MlxCtx::quantized_matmul` accepts a
+  `bits`/`group_size`/`mode` (affine/mxfp4), and `ops::quant::QuantWeights::with_quant(..., bits=8)`
+  routes through it. No custom q8.metal kernel is required.
+- For the Metal engine, see `engine-metal-ssd` (draco690456/engine-metal-ssd).
 
-## Provenienza
+## Git
+- Remote: `https://github.com/draco690456/engine-mlx-ssd.git` (public).
 
-- Base: duplicata da `engine-mlx` (Fase 4)
-- Spill: migrato da `Projects_Tmp/nxm/engines/serve-spill/spill-engine/` (core backend-agnostic)
-  — i moduli MLX-gated (`forward`, `loader`, `mamba2`, `model*`) NON sono migrati
-  perché dipendono da `nxm-mlx-ops` non ancora su GitHub.
+## Recovery note
+`engine-mlx-ssd` was a stub skeleton. It has been recovered by syncing the real
+`engine-mlx` implementation into it while preserving ssD's `spill` crate (SSD MoE streaming).
+See `STATUS.md` for the commit history and decisions. The old stub tree is preserved as the
+parent commit `6b6b545` (non-destructive).

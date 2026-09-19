@@ -1,3 +1,4 @@
+#![cfg(not(feature = "mlx"))] // stub-mode tests; skip under --features mlx
 //! Unit tests for `engine_mlx_ffi::ops` (low-level FFI helper wrappers).
 //!
 //! Every op is stubbed and returns `Err` with a "needs mlx-c FFI" marker.
@@ -5,16 +6,18 @@
 use engine_mlx_ffi::{MlxCtx, mlx_stream};
 
 fn null_ctx() -> MlxCtx {
-    MlxCtx::new(mlx_stream(std::ptr::null_mut()))
+    MlxCtx::new(unsafe { std::mem::zeroed() })
 }
 
 #[test]
+#[cfg(not(feature = "mlx"))]
 #[should_panic(expected = "MLX feature not enabled")]
 fn cpu_panics_without_mlx() {
     let _ = MlxCtx::cpu();
 }
 
 #[test]
+#[cfg(not(feature = "mlx"))]
 fn check_is_pure_logic() {
     let _ctx = null_ctx();
     engine_mlx_ffi::MlxCtx::check(0, "x").unwrap();
@@ -23,6 +26,7 @@ fn check_is_pure_logic() {
 }
 
 #[test]
+#[cfg(not(feature = "mlx"))]
 fn ops_bail_with_consistent_marker() {
     let ctx = null_ctx();
     let ops = [
@@ -73,5 +77,5 @@ fn ops_bail_with_consistent_marker() {
 }
 
 fn mlx_array_placeholder() -> engine_mlx_ffi::mlx_array {
-    engine_mlx_ffi::mlx_array(std::ptr::null_mut())
+    unsafe { std::mem::zeroed() }
 }

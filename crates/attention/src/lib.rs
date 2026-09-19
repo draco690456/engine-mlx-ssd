@@ -1,47 +1,49 @@
 //! # engine-mlx-attention
 //!
-//! Complete attention layers for MLX-C — GQA, sliding window, gated, GDN.
+//! Attention layer implementations for MLX-C inference.
 //!
-//! **NOTE**: This is a minimal stub for workspace structure.
-//! Full MLX-C integration requires complete MLX-C FFI implementation.
+//! Composes `engine_mlx_ops` (atomic ops: qmatmul, rope, transpose) with
+//! `engine_mlx_kvcache` (cache backends) into complete attention layers.
+//!
+//! ## Attention Types
+//!
+//! | Type | Module | Used by |
+//! |------|--------|---------|
+//! | GQA (Grouped-Query Attention) | [`gqa`] | Qwen3, Llama, Gemma4, SmolLM3, MiniCPM |
+//! | Sliding Window Attention | [`sliding_window`] | Qwen3 SWA layers, Mistral |
+//! | Gated Output Attention | [`gated`] | Qwen3.5 full-attention layers |
+//! | Gated DeltaNet (GDN) | [`gdn`] | Qwen3.5 (75% layers), Ornith |
+//!
+//! ## Combinability
+//!
+//! Each attention type is generic over `KvCache`:
+//!
+//! ```rust,ignore
+//! use engine_mlx_kvcache::{ConcatCache, Fp8Cache, RotatingCache};
+//! use engine_mlx_attention::gqa::gqa_attention;
+//!
+//! // Same attention logic, different cache strategies:
+//! gqa_attention(ctx, x, weights, &mut ConcatCache::new(), config)?;
+//! gqa_attention(ctx, x, weights, &mut Fp8Cache::new(128, 64), config)?;
+//! ```
+//!
+//! ## Architecture
+//!
+//! ```text
+//! engine_mlx_ops         →  atomic ops (qmatmul, rope, transpose, sdpa)
+//!       ↓
+//! engine_mlx_kvcache     →  cache storage (concat, fp8, rotating)
+//!       ↓
+//! engine_mlx_attention   →  THIS: composes ops + cache into attention layers
+//!       ↓
+//! model crate            →  composes attention + mlp + norm into transformer blocks
+//! ```
 
-pub mod gated;
-pub mod gdn;
 pub mod gqa;
 pub mod sliding_window;
+pub mod gated;
+pub mod gdn;
 
-use engine_mlx_ops::ffi::mlx_array;
-use engine_mlx_ops::MlxCtx;
-use anyhow::Result;
-
-/// Placeholder QuantWeights for attention ops.
-pub struct QuantWeights {
-    pub weight: mlx_array,
-    pub scales: mlx_array,
-    pub biases: mlx_array,
-    pub group_size: i32,
-    pub bits: i32,
-    pub mode: String,
-}
-
-/// Placeholder GdnConfig.
-pub struct GdnConfig {
-    pub hidden_dim: usize,
-    pub num_heads: usize,
-    pub head_dim: usize,
-}
-
-/// Placeholder GdnState.
-pub struct GdnState {
-    pub h: Option<mlx_array>,
-}
-
-impl GdnConfig {
-    pub fn new(hidden_dim: usize, num_heads: usize, head_dim: usize) -> Self {
-        Self { hidden_dim, num_heads, head_dim }
-    }
-}
-
-// Re-export from ops crate for convenience
-pub use engine_mlx_ops::KvCacheBackend;
-pub use engine_mlx_ops::TensorRef;
+// Re-export commonly used types from ops for convenience
+pub use engine_mlx_ops::quant::{QuantWeights, qmatmul};
+pub use engine_mlx_ops::gdn::{GdnConfig, GdnState};

@@ -1,19 +1,25 @@
 //! Unit tests for `engine_mlx_ffi::compile` (graph capture).
 //!
-//! `compile`/`compile_shapeless` attempt to build an MLX context first, which
-//! is stubbed, so they panic with the feature-gate message (the internal
-//! "not bound yet" bail is currently unreachable under the stub).
+//! Without `mlx` feature, compile/compile_shapeless bail with "not bound yet".
 
-use engine_mlx_ffi::compile::{compile, compile_shapeless};
+use engine_mlx_ffi::compile::{compile, compile_shapeless, Closure};
 
 #[test]
-#[should_panic(expected = "MLX feature not enabled")]
-fn compile_panics_without_mlx() {
-    let _ = compile(|_ctx| Ok(()));
+#[cfg(not(feature = "mlx"))]
+fn compile_bails_without_mlx() {
+    let c = Closure::new(unsafe { std::mem::zeroed() });
+    match compile(c) {
+        Ok(_) => panic!("expected error"),
+        Err(e) => assert!(e.to_string().contains("not bound")),
+    }
 }
 
 #[test]
-#[should_panic(expected = "MLX feature not enabled")]
-fn compile_shapeless_panics_without_mlx() {
-    let _ = compile_shapeless(|_ctx| Ok(()));
+#[cfg(not(feature = "mlx"))]
+fn compile_shapeless_bails_without_mlx() {
+    let c = Closure::new(unsafe { std::mem::zeroed() });
+    match compile_shapeless(c) {
+        Ok(_) => panic!("expected error"),
+        Err(e) => assert!(e.to_string().contains("not bound")),
+    }
 }

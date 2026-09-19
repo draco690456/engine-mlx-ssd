@@ -1,3 +1,4 @@
+#![cfg(not(feature = "mlx"))] // stub-mode tests; skip under --features mlx
 //! Unit tests for `engine_mlx_ops::ctx` module.
 //!
 //! `MlxCtx` construction requires an MLX stream, which is stubbed and panics

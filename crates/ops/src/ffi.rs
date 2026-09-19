@@ -4,21 +4,18 @@
 
 pub use engine_mlx_ffi::*;
 
-// Re-export common types
+// Re-export common types — aliases for engine_mlx_ffi FFI types.
+/// Opaque handle to an MLX array on the GPU.
 pub type mlx_array = engine_mlx_ffi::mlx_array;
+/// Opaque handle to an MLX command stream.
 pub type mlx_stream = engine_mlx_ffi::mlx_stream;
+/// MLX data type enum (F16, BF16, F32, INT32, etc.).
 pub type mlx_dtype = engine_mlx_ffi::mlx_dtype;
+/// Optional int wrapper for FFI calls with group_size/bits.
 pub type mlx_optional_int_ = engine_mlx_ffi::mlx_optional_int_;
+/// Optional float wrapper for FFI calls.
 pub type mlx_optional_float_ = engine_mlx_ffi::mlx_optional_float_;
+/// Optional dtype wrapper for FFI calls (e.g., dequantize target).
 pub type mlx_optional_dtype_ = engine_mlx_ffi::mlx_optional_dtype_;
 
-// Re-export common functions
-pub use engine_mlx_ffi::{
-    mlx_default_cpu_stream_new, mlx_default_gpu_stream_new,
-    mlx_synchronize, mlx_synchronize_stream,
-    mlx_array_new_data, mlx_array_free, mlx_array_eval, mlx_eval,
-    mlx_quantized_matmul, mlx_fast_rope, mlx_fast_rope_dynamic,
-    mlx_rms_norm, mlx_layer_norm, mlx_silu, mlx_softmax,
-    mlx_multiply, mlx_add, mlx_matmul, mlx_take, mlx_astype,
-    mlx_zeros, mlx_full, mlx_arange,
-};
+// Re-export common functions (wildcard to avoid binding mismatches across mlx versions)

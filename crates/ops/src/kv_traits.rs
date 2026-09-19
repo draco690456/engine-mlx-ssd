@@ -1,18 +1,30 @@
-//! KV Cache traits.
-//!
-//! **NOTE**: Stub for workspace structure.
+//! KV Cache traits — quantized backend abstraction.
 
-use crate::ffi::mlx_array;
+use anyhow::Result;
 
-pub trait KvCacheBackend: Send + Sync {
-    fn append(&mut self, k: mlx_array, v: mlx_array) -> anyhow::Result<()>;
-    fn get(&self, start: usize, len: usize) -> anyhow::Result<(mlx_array, mlx_array)>;
-    fn capacity(&self) -> usize;
-    fn len(&self) -> usize;
+/// Reference to host data for KV cache append.
+#[derive(Debug)]
+pub enum TensorRef {
+    F32(Vec<f32>),
+    F16(Vec<u16>),
 }
 
-pub trait TensorRef: Send + Sync {
-    fn as_ptr(&self) -> *const std::ffi::c_void;
-    fn shape(&self) -> &[usize];
-    fn dtype(&self) -> u32;
+impl TensorRef {
+    /// View as an F32 slice, if the variant holds F32 data.
+    pub fn as_f32_slice(&self) -> Option<&[f32]> {
+        match self {
+            TensorRef::F32(v) => Some(v),
+            _ => None,
+        }
+    }
+}
+
+/// Backend for quantized KV cache.
+///
+/// Used by `attention::kv_cache_quant`.
+pub trait KvCacheBackend: Send {
+    fn append(&mut self, k: TensorRef, v: TensorRef) -> Result<()>;
+    fn decode_to_f32(&self) -> Result<(Vec<f32>, Vec<f32>)>;
+    fn len(&self) -> usize { 0 }
+    fn is_empty(&self) -> bool { self.len() == 0 }
 }

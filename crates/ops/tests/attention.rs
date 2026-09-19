@@ -1,36 +1,43 @@
+#![cfg(not(feature = "mlx"))] // stub-mode tests; skip under --features mlx
 //! Unit tests for `engine_mlx_ops::attention` module.
 //!
-//! The ops crate is a stub: MLX-C FFI is not bound, so atomic attention
-//! operations panic with a clear "MLX feature not enabled" message.
-//! These tests lock that contract so the real binding cannot silently break it.
+//! The ops crate now exposes GQA building blocks (project_qkv, transpose_for_attn, etc).
+//! All operations require MLX-C FFI and panic/baile without the `mlx` feature.
 
-use engine_mlx_ops::MlxCtx;
-use engine_mlx_ops::ffi::mlx_array;
+use engine_mlx_ffi::mlx_array;
+use engine_mlx_ffi::MlxCtx;
+use engine_mlx_ops::quant::QuantWeights;
 
 fn dummy_array() -> mlx_array {
-    mlx_array(std::ptr::null_mut())
+    unsafe { std::mem::zeroed() }
+}
+
+fn dummy_weights() -> QuantWeights {
+    let a = dummy_array();
+    QuantWeights::new(a, a, a)
 }
 
 fn null_ctx() -> MlxCtx {
-    MlxCtx::new(engine_mlx_ops::ffi::mlx_stream(std::ptr::null_mut()))
+    MlxCtx::new(unsafe { std::mem::zeroed() })
 }
 
 #[test]
-#[should_panic(expected = "MLX feature not enabled")]
-fn gqa_attention_panics_without_mlx() {
+#[should_panic(expected = "not implemented")]
+fn project_qkv_panics_without_mlx() {
     let ctx = null_ctx();
-    let q = dummy_array();
-    let k = dummy_array();
-    let v = dummy_array();
-    let _ = engine_mlx_ops::attention::gqa_attention(&ctx, q, k, v, 1.0, None);
+    let _ = engine_mlx_ops::attention::project_qkv(&ctx, dummy_array(), &dummy_weights(), &dummy_weights(), &dummy_weights(), 8, 2, 128, 1).unwrap();
 }
 
 #[test]
-#[should_panic(expected = "MLX feature not enabled")]
-fn sliding_window_attention_panics_without_mlx() {
+#[should_panic(expected = "not implemented")]
+fn transpose_for_attn_panics_without_mlx() {
     let ctx = null_ctx();
-    let q = dummy_array();
-    let k = dummy_array();
-    let v = dummy_array();
-    let _ = engine_mlx_ops::attention::sliding_window_attention(&ctx, q, k, v, 512, 1.0, None);
+    let _ = engine_mlx_ops::attention::transpose_for_attn(&ctx, dummy_array(), dummy_array(), dummy_array()).unwrap();
+}
+
+#[test]
+#[should_panic(expected = "not implemented")]
+fn attend_and_project_panics_without_mlx() {
+    let ctx = null_ctx();
+    let _ = engine_mlx_ops::attention::attend_and_project(&ctx, dummy_array(), dummy_array(), dummy_array(), &dummy_weights(), 0.1, true, 8, 128).unwrap();
 }

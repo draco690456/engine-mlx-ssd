@@ -1,88 +1,77 @@
+#![cfg(not(feature = "mlx"))] // stub-mode tests: assert the "needs mlx-c FFI" marker; skip under --features mlx
 //! Unit tests for `engine_mlx_attention::gqa` module.
-//!
-//! All GQA helpers are stubbed and bail with the mlx-c marker. The `MlxCtx`
-//! cannot be constructed without MLX, so a zeroed (Copy) handle is used; the
-//! stub functions never dereference it before bailing.
 
-use engine_mlx_attention::gqa;
-use engine_mlx_ops::MlxCtx;
+use engine_mlx_attention::gqa::{GqaConfig, GqaWeights, gqa_attention};
+use engine_mlx_kvcache::KvCache;
 use engine_mlx_ops::ffi::mlx_array;
+use engine_mlx_ops::MlxCtx;
 
 fn null_ctx() -> MlxCtx {
-    engine_mlx_ops::MlxCtx::new(engine_mlx_ops::ffi::mlx_stream(std::ptr::null_mut()))
+    engine_mlx_ops::MlxCtx::new(unsafe { std::mem::zeroed() })
 }
 
 fn dummy_array() -> mlx_array {
-    mlx_array(std::ptr::null_mut())
+    unsafe { std::mem::zeroed() }
 }
 
-fn dummy_weights() -> engine_mlx_attention::QuantWeights {
-    engine_mlx_attention::QuantWeights {
+fn dummy_weights() -> engine_mlx_ops::quant::QuantWeights {
+    engine_mlx_ops::quant::QuantWeights {
         weight: dummy_array(),
         scales: dummy_array(),
         biases: dummy_array(),
         group_size: 64,
         bits: 4,
-        mode: "linear".to_string(),
+        mode: "affine",
     }
 }
 
-#[test]
-fn project_qkv_bails_with_mlx_marker() {
-    let err = gqa::project_qkv(
-        &null_ctx(),
-        dummy_array(),
-        &dummy_weights(),
-        &dummy_weights(),
-        &dummy_weights(),
-        32,
-        8,
-        128,
-        1024,
-    )
-    .unwrap_err();
-    assert!(err.to_string().contains("needs mlx-c FFI"));
+struct DummyCache;
+impl KvCache for DummyCache {
+    fn append(&mut self, _ctx: &MlxCtx, _k: mlx_array, _v: mlx_array) -> anyhow::Result<()> {
+        Ok(())
+    }
+    fn get(&self, _ctx: &MlxCtx) -> anyhow::Result<(mlx_array, mlx_array)> {
+        Ok((dummy_array(), dummy_array()))
+    }
+    fn len(&self) -> usize { 0 }
+    fn reset(&mut self) {}
+    fn memory_bytes(&self) -> usize { 0 }
 }
 
 #[test]
-fn optional_qk_norm_bails_with_mlx_marker() {
-    let err = gqa::optional_qk_norm(&null_ctx(), dummy_array(), dummy_array(), None, None)
+fn gqa_config_is_constructible() {
+    let cfg = GqaConfig {
+        n_heads: 32,
+        n_kv_heads: 8,
+        head_dim: 128,
+        rope_theta: 10000.0,
+        norm_eps: 1e-6,
+        use_rope: true,
+    };
+    assert_eq!(cfg.n_heads, 32);
+    assert_eq!(cfg.n_kv_heads, 8);
+}
+
+#[test]
+fn gqa_attention_bails_with_mlx_marker() {
+    let cfg = GqaConfig {
+        n_heads: 32,
+        n_kv_heads: 8,
+        head_dim: 128,
+        rope_theta: 10000.0,
+        norm_eps: 1e-6,
+        use_rope: true,
+    };
+    let weights = GqaWeights {
+        q_proj: dummy_weights(),
+        k_proj: dummy_weights(),
+        v_proj: dummy_weights(),
+        o_proj: dummy_weights(),
+        q_norm: None,
+        k_norm: None,
+    };
+    let mut cache = DummyCache;
+    let err = gqa_attention(&null_ctx(), dummy_array(), &weights, &mut cache, &cfg, 0)
         .unwrap_err();
-    assert!(err.to_string().contains("needs mlx-c FFI"));
-}
-
-#[test]
-fn transpose_for_attn_bails_with_mlx_marker() {
-    let err =
-        gqa::transpose_for_attn(&null_ctx(), dummy_array(), dummy_array(), dummy_array())
-            .unwrap_err();
-    assert!(err.to_string().contains("needs mlx-c FFI"));
-}
-
-#[test]
-fn kv_cache_concat_bails_with_mlx_marker() {
-    let err = gqa::kv_cache_concat(
-        &null_ctx(),
-        None,
-        dummy_array(),
-        None,
-        dummy_array(),
-    )
-    .unwrap_err();
-    assert!(err.to_string().contains("needs mlx-c FFI"));
-}
-
-#[test]
-fn attend_and_project_bails_with_mlx_marker() {
-    let err = gqa::attend_and_project(
-        &null_ctx(),
-        dummy_array(),
-        dummy_array(),
-        dummy_array(),
-        &dummy_weights(),
-        1.0,
-        true,
-    )
-    .unwrap_err();
     assert!(err.to_string().contains("needs mlx-c FFI"));
 }

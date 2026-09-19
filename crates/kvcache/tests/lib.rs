@@ -17,8 +17,8 @@ impl KvCache for InMemoryCache {
 
     fn get(&self, _ctx: &engine_mlx_ops::MlxCtx) -> anyhow::Result<(engine_mlx_ops::ffi::mlx_array, engine_mlx_ops::ffi::mlx_array)> {
         Ok((
-            engine_mlx_ops::ffi::mlx_array(std::ptr::null_mut()),
-            engine_mlx_ops::ffi::mlx_array(std::ptr::null_mut()),
+            unsafe { std::mem::zeroed() },
+            unsafe { std::mem::zeroed() },
         ))
     }
 
@@ -45,9 +45,9 @@ fn is_empty_default_uses_len() {
 #[test]
 fn append_updates_len_and_not_empty() {
     let mut cache = InMemoryCache { seq_len: 0 };
-    let ctx = engine_mlx_ops::MlxCtx::new(engine_mlx_ops::ffi::mlx_stream(std::ptr::null_mut()));
+    let ctx = engine_mlx_ops::MlxCtx::new(unsafe { std::mem::zeroed() });
     cache
-        .append(&ctx, engine_mlx_ops::ffi::mlx_array(std::ptr::null_mut()), engine_mlx_ops::ffi::mlx_array(std::ptr::null_mut()))
+        .append(&ctx, unsafe { std::mem::zeroed() }, unsafe { std::mem::zeroed() })
         .unwrap();
     assert_eq!(cache.len(), 1);
     assert!(!cache.is_empty());

@@ -1,13 +1,23 @@
-//! Interface — stub implementation.
-//!
-//! **NOTE**: Stub for workspace structure.
+//! Interface trait for prefill pipeline operations.
 
 use anyhow::Result;
 
-pub struct Interface;
+use crate::pipeline::PrefillResult;
 
-impl Interface {
-    pub fn new() -> Result<Self> {
-        anyhow::bail!("Interface not implemented - needs mlx-c FFI")
-    }
+/// Trait defining the prefill pipeline contract.
+pub trait PrefillPipelineTrait {
+    /// Run the prefill pipeline.
+    ///
+    /// `full_tokens` = system + history + user tokens.
+    /// `forward_fn` = model forward function.
+    fn run<F>(
+        &mut self,
+        full_tokens: &[u32],
+        forward_fn: &mut F,
+    ) -> Result<PrefillResult>
+    where
+        F: FnMut(&[u32]) -> Result<Vec<f32>>;
+
+    /// Reset the pipeline (clear caches).
+    fn reset(&mut self);
 }
